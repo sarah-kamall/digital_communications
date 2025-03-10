@@ -17,7 +17,18 @@ def uniform_quantizer(in_val: np.ndarray, n: int, x_max: float, m: int) -> np.nd
     L = pow(2, n)
     delta = 2 * x_max / L
     offset = m * delta / 2
-    quantized_values = np.round((in_val - offset) // delta)
+    
+    # return quantized_values
+        # Clip input to range [-x_max, x_max] to avoid overflow
+    in_val = np.clip(in_val, -x_max, x_max)
+    quantized_values =  np.floor((in_val - offset) / delta).astype(int)
+    # # Compute quantized index (floor for midrise, round for midtread)
+    # if m == 0:  # Midrise
+    #     q_ind = np.floor((in_val - offset) / delta)
+    # else:  # Midtread
+    #     q_ind = np.round((in_val - offset) / delta)
+
+
     return quantized_values
 
 
@@ -37,7 +48,8 @@ def uniform_dequantizer(q_val: np.ndarray, n: int, x_max: float, m: int) -> np.n
     L = pow(2, n)
     delta = 2 * x_max / L
     offset = m * delta / 2
-    org_values = np.round(q_val * delta + offset)
+    org_values = q_val * delta + offset
+
     org_values = np.clip(org_values, -x_max, x_max)
     return org_values
 
@@ -52,9 +64,10 @@ def expand(signal: np.ndarray, m: float):
     Returns:
         np.ndarray: compressed signal
     """
-    return (np.log10(1 + m * signal) / np.log10(1 + m))
+    return (((1 + m) ** np.abs(signal)) - 1) / m
 
-
+# (((1 + m) ** np.abs(signal)) - 1) / m
+# (np.log(1 + m * signal) / np.log(1 + m))
 def compress(signal: np.ndarray, m: float):
     """
     Compress signal back
@@ -65,4 +78,4 @@ def compress(signal: np.ndarray, m: float):
     Returns:
         np.ndarray: compressed signal
     """
-    return (((1 + m) ** signal) - 1) / m
+    return  (np.log(1 + m * np.abs(signal)) / np.log(1 + m))

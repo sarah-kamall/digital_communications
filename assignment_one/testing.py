@@ -28,6 +28,7 @@ def deterministic_test():
     ax2.plot(x, q_ind_m0, label='Quantization Indices (m=0)',
              color='green', alpha=0.6)
     ax2.set_ylabel('Quantization Index')
+    ax2.set_yticks(np.arange(min(q_ind_m0), max(q_ind_m0) + 1, 1))  # Integer quantization indices
 
     lines, labels = ax.get_legend_handles_labels()
     lines2, labels2 = ax2.get_legend_handles_labels()
@@ -76,7 +77,7 @@ def random_test():
         snr_simulation_db = 10 * np.log10(input_power / error_power)
         snr_sim_db.append(snr_simulation_db)
         delta = (2 * x_max) / pow(2, n)
-        error_power = (delta ** 2) / 2
+        error_power = (delta ** 2) / 12
         snr_theoritical_db = 10 * np.log10(input_power / error_power)
         snr_theory_db.append(snr_theoritical_db)
     plt.figure(figsize=(10, 6))
@@ -118,42 +119,53 @@ def random_nonuniform_test():
 
 
 def random_nonuniform_with_compression():
+    # Generate non-uniform random variables
     signs = np.random.choice([-1, 1], size=10000)
     magnitudes = np.random.exponential(scale=1, size=10000)
     non_uniform_random_variables = signs * magnitudes
-    x_max = 5
+
+    # Normalization step (before compression)
+    x_max = np.max(np.abs(non_uniform_random_variables))  
+    normalized_signal = non_uniform_random_variables / x_max  # Now in range [-1,1]
+
     n_bits_values = np.arange(2, 9)
     mu_values = [0, 5, 100, 200]
     SNR_mu = np.zeros((len(n_bits_values), len(mu_values)))
+
     for j, m in enumerate(mu_values):
         for i, n in enumerate(n_bits_values):
-            expanded_signal = signs * expand(
-                np.abs(non_uniform_random_variables), m) if m != 0 else non_uniform_random_variables
-            q_sample = uniform_quantizer(
-                expanded_signal, n, x_max, 0)
-            deq_sample = uniform_dequantizer(q_sample, n, 5, 0)
-            compressed_signal = signs * compress(
-                np.abs(deq_sample), m) if m != 0 else deq_sample
-            error_power = np.mean(
-                (non_uniform_random_variables - compressed_signal) ** 2)
+            # Expand (if mu > 0)
+            expanded_signal = signs * expand(np.abs(normalized_signal), m) if m != 0 else normalized_signal  
+            
+            # Quantization
+            q_sample = uniform_quantizer(expanded_signal, n, 1, 0)  # Adjusted x_max to 1
+            deq_sample = uniform_dequantizer(q_sample, n, 1, 0)  # Adjusted x_max to 1
+
+            # Compress (if mu > 0)
+            compressed_signal = signs * compress(np.abs(deq_sample), m) if m != 0 else deq_sample
+
+            # Denormalization step (after expansion)
+            final_signal = compressed_signal * x_max  # Scale back to original range
+
+            # Compute error and SNR
+            error_power = np.mean((non_uniform_random_variables - final_signal) ** 2)
             input_power = np.mean(non_uniform_random_variables ** 2)
-            snr_simulation_db = (input_power / error_power)
+            snr_simulation_db = 10 * np.log10(input_power / error_power)
             SNR_mu[i][j] = snr_simulation_db
 
+    # Plot SNR vs n_bits
     plt.figure()
     markers = ['bo-', 'r*-', 'gs-', 'kd-']
     for j, mu in enumerate(mu_values):
-        plt.plot(n_bits_values, 10 *
-                 np.log10(SNR_mu[:, j]), markers[j], label=f'μ={mu}')
+        plt.plot(n_bits_values, SNR_mu[:, j], markers[j], label=f'μ={mu}')
     plt.xlabel('n_bits')
     plt.ylabel('SNR (dB)')
     plt.title('SNR vs n_bits for μ-law Quantization (Non-uniform Input)')
     plt.legend()
-
     plt.show()
 
 
-# deterministic_test()
-# random_test()
-# random_nonuniform_test()
+deterministic_test()
+random_test()
+random_nonuniform_test()
 random_nonuniform_with_compression()
