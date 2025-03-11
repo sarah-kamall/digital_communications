@@ -72,7 +72,7 @@ def random_test():
 
     for n in n_bits_values:
         q_sample = uniform_quantizer(uniform_random_variables, n, x_max, 0)
-        deq_sample = uniform_dequantizer(q_sample, n, 5, 0)
+        deq_sample = uniform_dequantizer(q_sample, n, x_max, 0)
         error_power = np.mean((uniform_random_variables - deq_sample) ** 2)
         snr_simulation_db = 10 * np.log10(input_power / error_power)
         snr_sim_db.append(snr_simulation_db)
