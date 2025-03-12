@@ -88,9 +88,9 @@ def random_test():
         snr_sim_db.append(snr_simulation_db)
 
         # Compute Theoretical Error Power
-        # delta = (2 * x_max) / (2**n)
-        # error_power_theoretical = (delta ** 2) / 12
-        snr_theoretical_db = 10 * np.log10(3 * L**2)
+        delta = (2 * x_max) / (2**n)
+        error_power_theoretical = (delta ** 2) / 12
+        snr_theoretical_db =10 * np.log10(input_power / error_power_theoretical)
         snr_theory_db.append(snr_theoretical_db)
     
         # Print values
@@ -142,8 +142,8 @@ def random_nonuniform_with_compression():
     magnitudes = np.random.exponential(scale=1, size=10000)
     non_uniform_random_variables = signs * magnitudes
 
-    # Normalization step (before compression)
-    x_max = np.max(np.abs(non_uniform_random_variables))  
+    # Normalization (before compression)
+    x_max = np.max(np.abs(non_uniform_random_variables))
     normalized_signal = non_uniform_random_variables / x_max  # Now in range [-1,1]
 
     n_bits_values = np.arange(2, 9)
@@ -152,20 +152,20 @@ def random_nonuniform_with_compression():
 
     for j, m in enumerate(mu_values):
         for i, n in enumerate(n_bits_values):
-            # Expand (if mu > 0)
-            expanded_signal = signs * expand(np.abs(normalized_signal), m) if m != 0 else normalized_signal  
+            # 1. Apply μ-law compression if m > 0
+            compressed_signal = signs * compress(np.abs(normalized_signal), m) if m != 0 else normalized_signal
             
-            # Quantization
-            q_sample = uniform_quantizer(expanded_signal, n, 1, 0)  # Adjusted x_max to 1
-            deq_sample = uniform_dequantizer(q_sample, n, 1, 0)  # Adjusted x_max to 1
+            # 2. Quantization
+            q_sample = uniform_quantizer(compressed_signal, n, 1, -1)  # Adjusted x_max to 1, x_min to -1
+            deq_sample = uniform_dequantizer(q_sample, n, 1, -1)
 
-            # Compress (if mu > 0)
-            compressed_signal = signs * compress(np.abs(deq_sample), m) if m != 0 else deq_sample
+            # 3. Apply μ-law expansion (if m > 0)
+            expanded_signal = signs * expand(np.abs(deq_sample), m) if m != 0 else deq_sample
 
-            # Denormalization step (after expansion)
-            final_signal = compressed_signal * x_max  # Scale back to original range
+            # 4. Denormalization (scale back to original range)
+            final_signal = expanded_signal * x_max
 
-            # Compute error and SNR
+            # 5. Compute error and SNR
             error_power = np.mean((non_uniform_random_variables - final_signal) ** 2)
             input_power = np.mean(non_uniform_random_variables ** 2)
             snr_simulation_db = 10 * np.log10(input_power / error_power)
