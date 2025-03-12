@@ -12,14 +12,15 @@ def deterministic_test():
     m = 0
     q_ind_m0 = uniform_quantizer(x, n_bits, xmax, m)
     deq_val_m0 = uniform_dequantizer(q_ind_m0, n_bits, xmax, m)
+   
+    plt.figure(figsize=(10, 8))
 
-    plt.figure(figsize=(10, 6))
-    # Plot the input ramp and dequantized signal on the primary y-axis
     plt.plot(x, x, label='Input Signal (Ramp)', color='blue')
     plt.step(x, deq_val_m0, label='Dequantized Signal (m=0)',
              color='red', where='mid')
     plt.xlabel('Input Value')
-    plt.ylabel('Signal Value')
+    plt.ylabel('Signal Value/Dequntizayion value')
+    plt.yticks(np.arange(-6, 6.25, 0.25))
     plt.title('Quantizer/Dequantizer Output (m=0, Midrise)')
     plt.grid(True)
 
@@ -40,13 +41,14 @@ def deterministic_test():
     q_ind_m1 = uniform_quantizer(x, n_bits, xmax, m)
     deq_val_m1 = uniform_dequantizer(q_ind_m1, n_bits, xmax, m)
 
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 8))
 
     plt.plot(x, x, label='Input Signal (Ramp)', color='blue')
     plt.step(x, deq_val_m1, label='Dequantized Signal (m=1)',
              color='red', where='mid')
     plt.xlabel('Input Value')
-    plt.ylabel('Signal Value')
+    plt.ylabel('Signal Value/Dequntizayion value')
+    plt.yticks(np.arange(-6, 6.25, 0.25))
     plt.title('Quantizer/Dequantizer Output (m=1, Midtread)')
     plt.grid(True)
 
@@ -63,29 +65,45 @@ def deterministic_test():
 
 
 def random_test():
+    """Tests SNR for uniform quantization and plots theoretical vs. simulated SNR."""
+    np.random.seed(0)  
     uniform_random_variables = np.random.uniform(-5, 5, 10000)
     x_max = 5
     snr_sim_db = []
     snr_theory_db = []
     n_bits_values = np.arange(2, 9)
+    
+   
     input_power = x_max**2 / 3
 
     for n in n_bits_values:
+        # Quantization & Dequantization
+        L = (2**n)
         q_sample = uniform_quantizer(uniform_random_variables, n, x_max, 0)
         deq_sample = uniform_dequantizer(q_sample, n, x_max, 0)
-        error_power = np.mean((uniform_random_variables - deq_sample) ** 2)
-        snr_simulation_db = 10 * np.log10(input_power / error_power)
+        # print(deq_sample)
+        # Compute Quantization Error Power
+        error_power_simulated = np.mean((uniform_random_variables - deq_sample) ** 2)
+        snr_simulation_db = 10 * np.log10(input_power / error_power_simulated)
         snr_sim_db.append(snr_simulation_db)
-        delta = (2 * x_max) / pow(2, n)
-        error_power = (delta ** 2) / 12
-        snr_theoritical_db = 10 * np.log10(input_power / error_power)
-        snr_theory_db.append(snr_theoritical_db)
+
+        # Compute Theoretical Error Power
+        # delta = (2 * x_max) / (2**n)
+        # error_power_theoretical = (delta ** 2) / 12
+        snr_theoretical_db = 10 * np.log10(3 * L**2)
+        snr_theory_db.append(snr_theoretical_db)
+    
+        # Print values
+        print(f"Bits: {n}")  
+        print(f"  Simulated SNR (dB): {snr_simulation_db}")
+        print(f"  Theoretical SNR (dB): {snr_theoretical_db}\n")
+    # Plot SNR Results
     plt.figure(figsize=(10, 6))
     plt.plot(n_bits_values, snr_sim_db, 'bo-', label='Simulated SNR (dB)')
-    plt.plot(n_bits_values, snr_theory_db,
-             'rs--', label='Theoretical SNR (dB)')
-    plt.xlabel('Number of bits (n_bits)')
+    plt.plot(n_bits_values, snr_theory_db, 'rs--', label='Theoretical SNR (dB)')
+    plt.xlabel('Number of bits (n_bitsnn)')
     plt.ylabel('SNR (dB)')
+    plt.yticks(np.arange(0, 51, 5))
     plt.title('SNR vs. Number of Bits for Uniform Quantization (m=0, xmax=5)')
     plt.grid(True)
     plt.legend()
