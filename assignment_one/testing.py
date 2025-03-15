@@ -159,7 +159,7 @@ def random_nonuniform_with_compression():
     plt.show()
 
 
-# deterministic_test()
-# random_test()
+deterministic_test()
+random_test()
 random_nonuniform_test()
 random_nonuniform_with_compression()

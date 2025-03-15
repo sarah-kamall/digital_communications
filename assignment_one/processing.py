@@ -38,7 +38,7 @@ def uniform_dequantizer(q_ind: np.ndarray, n_bits: int, x_max: float, m: int) ->
     L = 2**n_bits
     delta = 2 * x_max / L
     offset = m * delta / 2
-    org_values = q_val * delta - x_max + offset + delta / 2
+    org_values = q_ind * delta - x_max + offset + delta / 2
     org_values = np.clip(org_values, -x_max, x_max)
     return org_values
 
