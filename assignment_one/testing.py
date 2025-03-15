@@ -76,7 +76,7 @@ def random_test():
         snr_simulation_db = 10 * np.log10(input_power / error_power)
         snr_sim_db.append(snr_simulation_db)
         delta = (2 * x_max) / pow(2, n)
-        error_power = (delta ** 2) / 2
+        error_power = (delta ** 2) / 12
         snr_theoritical_db = 10 * np.log10(input_power / error_power)
         snr_theory_db.append(snr_theoritical_db)
     plt.figure(figsize=(10, 6))
@@ -127,15 +127,15 @@ def random_nonuniform_with_compression():
     SNR_mu = np.zeros((len(n_bits_values), len(mu_values)))
     for j, m in enumerate(mu_values):
         for i, n in enumerate(n_bits_values):
-            expanded_signal = signs * expand(
+            compressed_signal = signs * compress(
                 np.abs(non_uniform_random_variables), m) if m != 0 else non_uniform_random_variables
             q_sample = uniform_quantizer(
-                expanded_signal, n, x_max, 0)
+                compressed_signal, n, x_max, 0)
             deq_sample = uniform_dequantizer(q_sample, n, 5, 0)
-            compressed_signal = signs * compress(
+            expanded_signal = signs * expand(
                 np.abs(deq_sample), m) if m != 0 else deq_sample
             error_power = np.mean(
-                (non_uniform_random_variables - compressed_signal) ** 2)
+                (non_uniform_random_variables - expanded_signal) ** 2)
             input_power = np.mean(non_uniform_random_variables ** 2)
             snr_simulation_db = (input_power / error_power)
             SNR_mu[i][j] = snr_simulation_db
@@ -155,5 +155,5 @@ def random_nonuniform_with_compression():
 
 # deterministic_test()
 # random_test()
-# random_nonuniform_test()
+random_nonuniform_test()
 random_nonuniform_with_compression()

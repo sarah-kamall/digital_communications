@@ -17,7 +17,8 @@ def uniform_quantizer(in_val: np.ndarray, n: int, x_max: float, m: int) -> np.nd
     L = pow(2, n)
     delta = 2 * x_max / L
     offset = m * delta / 2
-    quantized_values = np.round((in_val - offset) // delta)
+    quantized_values = np.floor((in_val - offset + x_max) // delta)
+    quantized_values = np.clip(quantized_values, 0, L)
     return quantized_values
 
 
@@ -37,7 +38,7 @@ def uniform_dequantizer(q_val: np.ndarray, n: int, x_max: float, m: int) -> np.n
     L = pow(2, n)
     delta = 2 * x_max / L
     offset = m * delta / 2
-    org_values = np.round(q_val * delta + offset)
+    org_values = q_val * delta - x_max + offset + delta / 2
     org_values = np.clip(org_values, -x_max, x_max)
     return org_values
 
@@ -52,7 +53,7 @@ def expand(signal: np.ndarray, m: float):
     Returns:
         np.ndarray: compressed signal
     """
-    return (np.log10(1 + m * signal) / np.log10(1 + m))
+    return (((1 + m) ** signal) - 1) / m
 
 
 def compress(signal: np.ndarray, m: float):
@@ -65,4 +66,6 @@ def compress(signal: np.ndarray, m: float):
     Returns:
         np.ndarray: compressed signal
     """
-    return (((1 + m) ** signal) - 1) / m
+    xmax = np.max(np.abs(signal))
+    signal /= xmax
+    return (np.log10(1 + m * signal) / np.log10(1 + m))
